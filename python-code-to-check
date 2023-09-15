@@ -1,4 +1,3 @@
-import boto3
 from datetime import datetime, timedelta
 
 # Initialize the RDS client
@@ -10,18 +9,18 @@ cluster_identifier = 'database-1'
 # List the snapshots for the specified RDS cluster
 response = rds_client.describe_db_cluster_snapshots(DBClusterIdentifier=cluster_identifier)
 
-# Get the current date
+# Get the current date and calculate the date one day ago
 current_date = datetime.now()
+one_day_ago = current_date - timedelta(days=1)
 
-# Extract and print the snapshot names created today
+# Extract and print the snapshot names created yesterday
 snapshot_names = []
 
 for snapshot in response['DBClusterSnapshots']:
     snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)
-    if snapshot_creation_date.date() == current_date.date() and snapshot['SnapshotType'] =='automated':
+    if snapshot_creation_date >= one_day_ago and snapshot_creation_date < current_date and snapshot['SnapshotType'] =='automated':
         snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])
-        print(f"Snapshots created today for cluster {cluster_identifier}:")
-    else:
-        print("Please check the snapshot type and creation date again")
+        print(snapshot_names)
+        print(f"Snapshots created yesterday for cluster {cluster_identifier}:")
 for name in snapshot_names:
-    print(f"This is {name} snapshot")
+    print(name)
