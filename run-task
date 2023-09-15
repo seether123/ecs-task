@@ -1,1 +1,3 @@
+aws ecs create-cluster --cluster-name temporary-ecs-cluster
 aws ecs run-task --cluster temp-ecs-cluster --task-definition python-ecs-task --count 1 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[subnet-0443718feb48e5b20],securityGroups=[sg-0be8844b940f1af85]}"
+aws ecs describe-tasks --cluster temp-ecs-cluster --tasks arn:aws:ecs:ap-south-1:905816940715:task/temp-ecs-cluster/b5c9cf39df794c59bfe9f2ffe8dbc0ab
