@@ -1,27 +1,52 @@
-import boto3
-from datetime import datetime, timedelta
-
-# Initialize the RDS client
-rds_client = boto3.client('rds')
-
-# Replace 'database-1' with your RDS cluster identifier
-cluster_identifier = 'database-1'
-
-# List the snapshots for the specified RDS cluster
-response = rds_client.describe_db_cluster_snapshots(DBClusterIdentifier=cluster_identifier)
-
-# Get the current date
-current_date = datetime.now()
-
-# Extract and print the snapshot names created today
-snapshot_names = []
-
-for snapshot in response['DBClusterSnapshots']:
-    snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)
-    if snapshot_creation_date.date() == current_date.date() and snapshot['SnapshotType'] =='manual':
-        snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])
-        print(f"Snapshots created today for cluster {cluster_identifier}:")
-    else:
-        print("Please check the snapshot type and creation date again")
-for name in snapshot_names:
-    print(f"This is {name} snapshot")
+{
+    "taskDefinitionArn": "arn:aws:ecs:ap-south-1:905816940715:task-definition/python-ecs-task:1",
+    "containerDefinitions": [
+        {
+            "name": "python-container",
+            "image": "public.ecr.aws/lambda/python:3.8",
+            "cpu": 256,
+            "memory": 512,
+            "portMappings": [],
+            "essential": true,
+            "command": [
+                "python",
+                "-c",
+                "import boto3\nfrom datetime import datetime, timedelta\n\n# Initialize the RDS client\nrds_client = boto3.client('rds')\n\n# Replace 'database-1' with your RDS cluster identifier\ncluster_identifier = 'database-1'\n\n# List the snapshots for the specified RDS cluster\nresponse = rds_client.describe_db_cluster_snapshots(DBClusterIdentifier=cluster_identifier)\n\n# Get the current date\ncurrent_date = datetime.now()\n\n# Extract and print the snapshot names created today\nsnapshot_names = []\n\nfor snapshot in response['DBClusterSnapshots']:\n    snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)\n    if snapshot_creation_date.date() == current_date.date() and snapshot['SnapshotType'] =='manual':\n        snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])\n        print(f'Snapshots created today for cluster {cluster_identifier}:')\n    else:\n        print('Please check the snapshot type and creation date again')\nfor name in snapshot_names:\n    print(f'This is {name} snapshot')"
+            ],
+            "environment": [],
+            "mountPoints": [],
+            "volumesFrom": []
+        }
+    ],
+    "family": "python-ecs-task",
+    "taskRoleArn": "arn:aws:iam::905816940715:role/ecs-task-role",
+    "executionRoleArn": "arn:aws:iam::905816940715:role/ecs-task-role",
+    "networkMode": "awsvpc",
+    "revision": 1,
+    "volumes": [],
+    "status": "ACTIVE",
+    "requiresAttributes": [
+        {
+            "name": "com.amazonaws.ecs.capability.task-iam-role"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+        },
+        {
+            "name": "ecs.capability.task-eni"
+        }
+    ],
+    "placementConstraints": [],
+    "compatibilities": [
+        "EC2",
+        "FARGATE"
+    ],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "registeredAt": "2023-09-15T11:54:24.269Z",
+    "registeredBy": "arn:aws:iam::905816940715:root",
+    "tags": []
+}
