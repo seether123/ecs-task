@@ -18,7 +18,7 @@ snapshot_names = []
 
 for snapshot in response['DBClusterSnapshots']:
     snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)
-    if snapshot_creation_date.date() == current_date.date() and snapshot['SnapshotType'] =='manual':
+    if snapshot_creation_date.date() == current_date.date() and snapshot['SnapshotType'] =='automated':
         snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])
         print(f"Snapshots created today for cluster {cluster_identifier}:")
     else:
