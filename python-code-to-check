@@ -1,3 +1,4 @@
+import boto3
 from datetime import datetime, timedelta
 
 # Initialize the RDS client
@@ -18,9 +19,31 @@ snapshot_names = []
 
 for snapshot in response['DBClusterSnapshots']:
     snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)
-    if snapshot_creation_date >= one_day_ago and snapshot_creation_date < current_date and snapshot['SnapshotType'] =='automated':
+    if snapshot_creation_date >= one_day_ago and snapshot_creation_date < current_date and snapshot['SnapshotType'] == 'automated':
         snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])
-        print(snapshot_names)
         print(f"Snapshots created yesterday for cluster {cluster_identifier}:")
-for name in snapshot_names:
-    print(name)
+        for name in snapshot_names:
+            print(name)
+
+# Create a new Aurora cluster using the same configuration
+if snapshot_names:
+    new_cluster_identifier = 'new-aurora-cluster'  # Replace with your desired cluster identifier
+    source_snapshot_identifier = snapshot_names[0]  # Use the first snapshot found
+
+    response = rds_client.restore_db_cluster_from_snapshot(
+        DBClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=source_snapshot_identifier,
+        Engine='aurora',
+        EngineVersion='5.6.10a',
+        DBSubnetGroupName='default',
+        VpcSecurityGroupIds=['sg-0be8844b940f1af85'],  # Replace with your security group IDs
+        Tags=[
+            {
+                'Key': 'Name',
+                'Value': 'New Aurora Cluster'
+            },
+        ]
+    )
+
+    print(f"Creating a new Aurora cluster with identifier: {new_cluster_identifier}")
+    print(f"Using snapshot: {source_snapshot_identifier}")
