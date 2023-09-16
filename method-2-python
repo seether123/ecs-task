@@ -1,0 +1,52 @@
+import boto3
+from datetime import datetime, timedelta
+
+# Initialize the RDS client
+rds_client = boto3.client('rds')
+
+# Replace 'adi-cluster' with your RDS cluster identifier
+cluster_identifier = 'adi-cluster'
+
+# List the snapshots for the specified RDS cluster
+response = rds_client.describe_db_cluster_snapshots(DBClusterIdentifier=cluster_identifier)
+
+# Get the current date and calculate the date one day ago
+current_date = datetime.now()
+one_day_ago = current_date - timedelta(days=1)
+
+# Extract and print the snapshot names created yesterday
+snapshot_names = []
+
+for snapshot in response['DBClusterSnapshots']:
+    snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)
+    if snapshot_creation_date >= one_day_ago and snapshot_creation_date < current_date and snapshot['SnapshotType'] == 'automated':
+        snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])
+        print(f"Snapshots created yesterday for cluster {cluster_identifier}:")
+        for name in snapshot_names:
+            print(name)
+
+# Create a new Aurora cluster using the same configuration as the source cluster
+if snapshot_names:
+    new_cluster_identifier = 'new-aurora-cluster'  # Replace with your desired cluster identifier
+    source_snapshot_identifier = snapshot_names[0]  # Use the first snapshot found
+
+    # Get the source cluster details
+    source_cluster = rds_client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)['DBClusters'][0]
+
+    # Create the new cluster using source cluster specifications and the chosen snapshot
+    response = rds_client.restore_db_cluster_from_snapshot(
+        DBClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=source_snapshot_identifier,
+        Engine='aurora',
+        EngineVersion=source_cluster['EngineVersion'],
+        DBSubnetGroupName=source_cluster['DBSubnetGroup'],
+        VpcSecurityGroupIds=source_cluster['VpcSecurityGroups'],
+        AvailabilityZones=source_cluster['AvailabilityZones'],
+        BackupRetentionPeriod=source_cluster['BackupRetentionPeriod'],
+        PreferredMaintenanceWindow=source_cluster['PreferredMaintenanceWindow'],
+        Port=source_cluster['Port'],
+        DBClusterParameterGroupName=source_cluster['DBClusterParameterGroup'],
+    )
+
+    print(f"Creating a new Aurora cluster with identifier: {new_cluster_identifier}")
+    print(f"Using snapshot: {source_snapshot_identifier}")
