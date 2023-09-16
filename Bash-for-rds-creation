@@ -1,0 +1,50 @@
+prerequisits
+
+aws ec2 create-vpc --cidr-block 10.0.0.0/16 --region ap-south-1
+
+
+#arora cluster and instance creation
+#!/bin/bash
+
+# Define variables
+region="ap-south-1"
+vpcId="vpc-017c92933f96c87ca"  # Use your existing VPC ID
+subnet1="subnet-000c3999df61802bc"  # Replace with your subnet IDs
+subnet2="subnet-096601acfcae5ee15"
+securityGroupName="rds-security-group"
+subnetGroupName="adi-subnet-group"
+
+# Create RDS security group
+securityGroupId=$(aws ec2 create-security-group --group-name $securityGroupName --description "RDS Security Group for Aurora PostgreSQL cluster" --vpc-id $vpcId --region $region --query 'GroupId' --output text)
+
+# Authorize inbound access for port 5432 (PostgreSQL)
+aws ec2 authorize-security-group-ingress --group-id $securityGroupId --protocol tcp --port 5432 --cidr 0.0.0.0/0 --region $region
+
+# Create RDS subnet group (if it doesn't exist)
+aws rds create-db-subnet-group --db-subnet-group-name $subnetGroupName --db-subnet-group-description "RDS Subnet Group for Aurora PostgreSQL cluster" --subnet-ids $subnet1 $subnet2 --region $region
+
+# Create RDS cluster
+aws rds create-db-cluster \
+   --db-cluster-identifier adi-cluster \
+   --engine aurora-postgresql \
+   --master-username YourMasterUsername \
+   --master-user-password YourMasterPassword \
+   --database-name YourDatabaseName \
+   --vpc-security-group-ids $securityGroupId \
+   --availability-zones $regiona $regionb \
+   --db-subnet-group-name $subnetGroupName \
+   --preferred-maintenance-window Sun:04:00-Sun:04:30 \
+   --backup-retention-period 7 \
+   --engine-version 11.9 \
+   --port 5432 \
+   --no-enable-iam-database-authentication \
+   --region $region
+--------------------------------------------------------------------------------------------------------------------------
+aws rds create-db-instance \
+    --db-instance-identifier adi-read-replica-1 \
+    --db-instance-class db.r5.large \
+    --db-cluster-identifier adi-cluster \
+    --engine aurora-postgresql \
+    --region ap-south-1
+--------------------------------------------------------------------
+aws rds create-db-instance
