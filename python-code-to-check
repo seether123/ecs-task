@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 rds_client = boto3.client('rds')
 
 # Replace 'database-1' with your RDS cluster identifier
-cluster_identifier = 'database-1'
+cluster_identifier = 'prod-aurora-postgresql-confluence'
 
 # List the snapshots for the specified RDS cluster
 response = rds_client.describe_db_cluster_snapshots(DBClusterIdentifier=cluster_identifier)
