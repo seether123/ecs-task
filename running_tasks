@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Create the ECS cluster
+aws ecs register-task-definition --cli-input-json file://ecs-task-definition.json
 aws ecs create-cluster --cluster-name temporary-ecs-cluster
 
 # Run the ECS task
