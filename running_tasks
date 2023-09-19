@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Create the ECS cluster
+aws ecs create-cluster --cluster-name temporary-ecs-cluster
+
+# Run the ECS task
+aws ecs run-task \
+  --cluster temporary-ecs-cluster \
+  --task-definition python-ecs-task \
+  --count 1 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-0443718feb48e5b20],securityGroups=[sg-0be8844b940f1af85],assignPublicIp=ENABLED,vpcId=YOUR_VPC_ID}"
+
+# Delete the ECS cluster (optional, comment out if not needed)
+aws ecs delete-cluster --cluster temporary-ecs-cluster
