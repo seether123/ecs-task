@@ -13,7 +13,7 @@ aws iam create-role --role-name ecs-task-role --assume-role-policy-document '{
   ]
 }'
 --------------------------
-aws iam attach-role-policy --role-name ecs-task-role --policy-arn arn:aws:iam::aws:policy/AmazonRDSFullAccess
+aws iam attach-role-policy --role-name ecs-task-role --policy-arn arn:aws:iam::268933435972:role/alm/corpjiratest
 ---------------------------------
 
 aws iam get-role --role-name ecs-task-role --query 'Role.Arn' --output text
