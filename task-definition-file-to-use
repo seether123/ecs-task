@@ -3,7 +3,7 @@
   "containerDefinitions": [
     {
       "name": "python-container",
-      "image": "public.ecr.aws/lambda/python:3.8",
+      "image": "https://<account-id>.dkr.ecr.<region>.amazonaws.com",
       "cpu": 256,
       "memory": 512,
       "portMappings": [],
