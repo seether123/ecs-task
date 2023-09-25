@@ -50,3 +50,33 @@ if snapshot_names:
 
     print(f"Creating a new Aurora cluster with identifier: {new_cluster_identifier}")
     print(f"Using snapshot: {source_snapshot_identifier}")
+rds_client.get_waiter('db_cluster_available').wait(
+    DBClusterIdentifier=new_cluster_identifier
+)
+
+# Check the response for any errors
+if 'DBCluster' in response:
+    print(f"New Aurora cluster '{new_cluster_identifier}' created successfully.")
+else:
+    print("Error creating Aurora cluster.")
+
+replica_identifier = f'{new_cluster_identifier}-replica'
+response = rds_client.create_db_instance(
+    DBInstanceIdentifier=replica_identifier,
+    DBInstanceClass='db.t2.small',  # Specify instance class
+    Engine='aurora',
+    DBClusterIdentifier=new_cluster_identifier,
+    PubliclyAccessible=False,  # Adjust as needed
+    Tags=[
+        {
+            'Key': 'Name',
+            'Value': replica_identifier
+        }
+    ]
+)
+
+# Check the response and handle any errors
+if 'DBInstance' in response:
+    print(f"Read replica '{replica_identifier}' created successfully.")
+else:
+    print(f"Error creating read replica '{replica_identifier}'.")
