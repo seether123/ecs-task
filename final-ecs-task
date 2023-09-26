@@ -1,0 +1,65 @@
+name: ECS Deployment
+
+on:
+  push:
+    branches:
+      - main  # Modify to your repository's main branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  # Replace with your AWS region
+
+      - name: Create ECS Cluster
+        run: aws ecs create-cluster --cluster-name my-fargate-cluster
+
+      - name: Register Fargate Task Definition
+        run: |
+          cat <<EOF > my-fargate-task-definition.json
+          {
+              "family": "my-fargate-task",
+              "containerDefinitions": [
+                  {
+                      "name": "my-fargate-container",
+                      "image": "nginx:latest",
+                      "cpu": 256,
+                      "memory": 512,
+                      "essential": true
+                  }
+              ],
+              "requiresCompatibilities": ["FARGATE"],
+              "networkMode": "awsvpc"
+          }
+          EOF
+          aws ecs register-task-definition --cli-input-json file://my-fargate-task-definition.json
+
+      - name: Create ECS Service
+        run: |
+          aws ecs create-service \
+            --cluster my-fargate-cluster \
+            --service-name my-fargate-service \
+            --task-definition my-fargate-task \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxxxxxxxxxxx],securityGroups=[sg-xxxxxxxxxxxxxx]}" \
+            --desired-count 1
+        # Wait for the service to reach a stable state
+        run: aws ecs wait services-stable --cluster my-fargate-cluster --services my-fargate-service --region ap-south-1
+
+      - name: Delete ECS Service
+        run: aws ecs delete-service --cluster my-fargate-cluster --service my-fargate-service --force
+
+      - name: Deregister Task Definition
+        run: aws ecs deregister-task-definition --task-definition my-fargate-task
+
+      - name: Delete ECS Cluster
+        run: aws ecs delete-cluster --cluster my-fargate-cluster
