@@ -1,0 +1,81 @@
+import boto3
+from datetime import datetime, timedelta
+
+# Initialize the RDS client
+rds_client = boto3.client('rds', region_name='us-west-2')
+
+# Replace 'xyz' with your RDS cluster identifier
+cluster_identifier = 'xyz'
+new_cluster_identifier = 'new-cluster'  # Define a new cluster identifier
+
+# List the snapshots for the specified RDS cluster
+response = rds_client.describe_db_cluster_snapshots(DBClusterIdentifier=cluster_identifier)
+current_date = datetime.now()
+one_day_ago = current_date - timedelta(days=10)
+
+snapshot_names = []
+
+for snapshot in response['DBClusterSnapshots']:
+    snapshot_creation_date = snapshot['SnapshotCreateTime'].replace(tzinfo=None)
+    if snapshot_creation_date >= one_day_ago and snapshot_creation_date < current_date and snapshot['SnapshotType'] == 'automated':
+        snapshot_names.append(snapshot['DBClusterSnapshotIdentifier'])
+
+if snapshot_names:
+    source_snapshot_identifier = snapshot_names[0]
+    print(f"Selected snapshot: {source_snapshot_identifier}")
+    source_cluster = rds_client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)['DBClusters'][0]
+    
+    print(f"Snapshots created one day ago for cluster {cluster_identifier}:")
+    
+    response_restore = rds_client.restore_db_cluster_from_snapshot(
+        DBClusterIdentifier=new_cluster_identifier,
+        SnapshotIdentifier=source_snapshot_identifier,
+        Engine='aurora',
+        EngineVersion=source_cluster['EngineVersion'],
+        DBSubnetGroupName=source_cluster['DBSubnetGroup'],
+        VpcSecurityGroupIds=source_cluster['VpcSecurityGroups'],
+        AvailabilityZones=source_cluster['AvailabilityZones'],
+        BackupRetentionPeriod=source_cluster['BackupRetentionPeriod'],
+        PreferredMaintenanceWindow=source_cluster['PreferredMaintenanceWindow'],
+        Port=source_cluster['Port'],
+        DBClusterParameterGroupName=source_cluster['DBClusterParameterGroup'],
+    )
+
+    print(f"Creating a new Aurora cluster with identifier: {new_cluster_identifier}")
+    print(f"Using snapshot: {source_snapshot_identifier}")
+    
+    # Wait for the new cluster to be available
+    rds_client.get_waiter('db_cluster_available').wait(
+        DBClusterIdentifier=new_cluster_identifier
+    )
+
+    if 'DBCluster' in response_restore:
+        print(f"New Aurora cluster '{new_cluster_identifier}' created successfully.")
+    else:
+        print("Error creating Aurora cluster.")
+    
+    # Define a replica identifier
+    replica_identifier = f'{new_cluster_identifier}-replica'
+    
+    # Create a read replica for the new cluster
+    response_replica = rds_client.create_db_instance(
+        DBInstanceIdentifier=replica_identifier,
+        DBInstanceClass='db.t2.small',  # Specify instance class
+        Engine='aurora',
+        DBClusterIdentifier=new_cluster_identifier,
+        PubliclyAccessible=False,  # Adjust as needed
+        Tags=[
+            {
+                'Key': 'Name',
+                'Value': replica_identifier
+            }
+        ]
+    )
+    
+    # Check the response and handle any errors
+    if 'DBInstance' in response_replica:
+        print(f"Read replica '{replica_identifier}' created successfully.")
+    else:
+        print(f"Error creating read replica '{replica_identifier}'.")
+else:
+    print(f"No snapshots found for cluster {cluster_identifier}.")
